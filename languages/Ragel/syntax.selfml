@@ -1,0 +1,177 @@
+(root source.c.ragel
+    (zone source.ragel
+        (start
+            (regex [%%{]
+                (0 punctuation.section.embedded.ragel)))
+        (end
+            (regex [}%%]
+                (0 punctuation.section.embedded.ragel)))
+        (subzones
+            (include @source_ragel)))
+    (zone source.ragel
+        (start
+            (regex %%$
+                (0 punctuation.section.embedded.ragel)))
+        (end
+            (regex $))
+        (subzones
+            (include @source_ragel)))
+    (zone support.function.ragel
+        (start
+            (regex %%
+                (0 punctuation.section.embedded.ragel)))
+        (end
+            (regex $))
+        (subzones
+            (include @keywords)))
+    (include source.c))
+
+(collection comments
+    (zone comment.line.ragel
+        (start
+            (regex [#]
+                (0 punctuation.definition.comment.ragel)))
+        (end
+            (regex $\n?))))
+
+(collection action_name
+    (zone entity.name.type.action-reference.ragel
+        (match
+            (regex [([@$>%])\s*([\w\d]+)]
+                (1 punctuation.definition.entity.ragel)))))
+
+(collection regexp
+    (zone string.regexp.character-class.ragel
+        (start
+            (regex `\[`
+                (0 punctuation.definition.string.begin.ragel)))
+        (end
+            (regex `\]\s*[*?]?`
+                (0 punctuation.definition.string.end.ragel))))
+    (zone string.regexp.classic.ragel
+        (start
+            (regex \/
+                (0 punctuation.definition.string.begin.ragel)))
+        (end
+            (regex [\/\s*[*?]?]
+                (0 punctuation.definition.string.end.ragel)))))
+
+(collection keywords
+    (zone keyword.other.ragel
+        (match
+            (list machine action context include variable access write contained)
+            (boundary.both))))
+
+(collection operators
+    (zone keyword.operator.contatenation.ragel
+        (match
+            (regex [(\:\>\>?|\<\:)]))))
+
+(collection source_ragel
+    (include @keywords)
+    (include @regexp)
+    (include @string)
+    (include @comments)
+    (include @embedded_code)
+    (zone meta.function.action.ragel
+        (start
+            (regex [(action)\s+([\w\d]+)\s+({)]
+                (3 punctuation.section.function.ragel)
+                (1 keyword.other.action.ragel)
+                (2 entity.name.type.action.ragel)))
+        (end
+            (regex [(})]
+                (1 punctuation.section.function.ragel)))
+        (subzones
+            (include source.c)))
+    (zone meta.machine-definition.ragel
+        (start
+            (regex [([\w\d]+)\s*(=)]
+                (1 entity.name.type.machine-definition.ragel)
+                (2 punctuation.separator.key-value.ragel)))
+        (end
+            (regex [(;)]
+                (1 punctuation.terminator.machine-definition.ragel)))
+        (subzones
+            (include @regexp)
+            (include @string)
+            (include @action_name)
+            (include @embedded_code)
+            (include @operators)
+            (include @comments)))
+    (zone meta.machine-instantiation.ragel
+        (start
+            (regex [([\w\d]+)\s*(:=)]
+                (1 entity.name.type.machine-instantiation.ragel)
+                (2 punctuation.separator.key-value.ragel)))
+        (end
+            (regex ;
+                (1 punctuation.terminator.machine-instantiation.ragel)))
+        (subzones
+            (include @regexp)
+            (include @string)
+            (include @action_name)
+            (include @embedded_code)
+            (include @operators)
+            (include @comments)
+            (zone meta.ragel.longest-match
+                (start
+                    (regex \|\*))
+                (end
+                    (regex \*\|))
+                (subzones
+                    (include @source_ragel))))))
+
+(collection string
+    (zone string.quoted.double.ragel
+        (start
+            (regex "
+                (0 punctuation.definition.string.begin.ragel)))
+        (end
+            (regex "
+                (0 punctuation.definition.string.end.ragel)))
+        (subzones
+            (include @string_escaped_char)
+            (include @string_placeholder)))
+    (zone string.quoted.single.ragel
+        (start
+            (regex '
+                (0 punctuation.definition.string.begin.ragel)))
+        (end
+            (regex '
+                (0 punctuation.definition.string.end.ragel)))
+        (subzones
+            (include @string_escaped_char))))
+
+(collection string_escaped_char
+    (zone constant.character.escape.ragel
+        (match
+            (regex [\\(\\|[abefnprtv'"?]|[0-3]\d{,2}|[4-7]\d?|x[a-fA-F0-9]{,2})])))
+    (zone invalid.illegal.unknown-escape.ragel
+        (match
+            (regex \\.))))
+
+(collection embedded_code
+    (zone source.c
+        (start
+            (regex [\{]
+                (0 punctuation.section.embedded.c)))
+        (end
+            (regex [\}]))
+        (subzones
+            (include source.c))))
+
+(collection string_placeholder
+    (zone constant.other.placeholder.ragel
+        (match
+            (regex [(?x)%
+						(\d+\$)?                             # field (argument #)
+						[#0\- +']*                           # flags
+						[,;:_]?                              # separator character (AltiVec)
+						((-?\d+)|\*(-?\d+\$)?)?              # minimum field width
+						(\.((-?\d+)|\*(-?\d+\$)?)?)?         # precision
+						(hh|h|ll|l|j|t|z|q|L|vh|vl|v|hv|hl)? # length modifier
+						[diouxXDOUeEfFgGaACcSspn%]           # conversion type
+					])))
+    (zone invalid.illegal.placeholder.ragel
+        (match %)))

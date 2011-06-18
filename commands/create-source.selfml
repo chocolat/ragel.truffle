@@ -1,0 +1,16 @@
+(trigger
+    (key [[ctrl][shift]H]))
+
+(name [Create Source])
+
+(only-in source.c.ragel)
+
+(input nothing)
+
+(output new-document)
+
+(save file)
+
+(script [require_cmd ragel
+ragel "$TM_FILEPATH" -o /dev/stdout
+])

@@ -1,0 +1,15 @@
+(detector
+    (extension rl)
+    (extension ragel))
+
+(folding
+    (start [(?x)
+		 /\*\*(?!\*)
+		|^(?![^{]*?//|[^{]*?/\*(?!.*?\*/.*?\{)).*?\{\s*($|//|/\*(?!.*?\*/.*\S))
+	])
+    (stop [(?<!\*)\*\*/|^\s*\}]))
+
+(in source.ragel
+    (shell-variables
+        (TM_COMMENT_START [# ]))
+    (comment.line [# ]))
